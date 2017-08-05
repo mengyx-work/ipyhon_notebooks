@@ -1,7 +1,7 @@
 import cPickle as pickle
 import numpy as np
 
-def batch(inputs, max_sequence_length=None):
+def process_batch(inputs, max_sequence_length=None):
     sequence_lengths = [len(seq) for seq in inputs]
     batch_size = len(inputs)
     if max_sequence_length is None:
@@ -27,7 +27,7 @@ class DataGenerator(object):
         self.titles = self.data['titles']
         self.reverse_token_dict = self.data['reverse_token_dict']
         self.data_size = len(self.titles)
-        self.vocab_size = max(self.reverse_token_dict.keys())
+        self.vocab_size = max(self.reverse_token_dict.keys()) 
     
     def generate_sequence(self, batch_size):
         if batch_size >= 2 * self.data_size:
@@ -41,5 +41,8 @@ class DataGenerator(object):
             else:
                 start_index = self._cur_index
                 self._cur_index = self._cur_index + batch_size - self.data_size
-                yield self.titles[start_index : self.data_size].extend(self.titles[0 : self._cur_index])
+                batch_content = self.titles[start_index : self.data_size]
+                batch_content.extend(self.titles[0 : self._cur_index])
+                yield batch_content
+                #yield self.titles[start_index : self.data_size] + self.titles[0 : self._cur_index]
 
