@@ -1,11 +1,12 @@
 .DS_Store
 taboola/
 *Copy*
+notebooks/*.py
+tensorflow_playground/*.py
 *.eps
 .ipynb_checkpoints
 *.txt
 *.csv
 *.pkl
-*.py
 *.pyc
 .idea
