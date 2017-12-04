@@ -2,7 +2,7 @@ import os, time
 import tensorflow as tf
 
 
-class TensorflowModel(object):
+class TensorFlowModel(object):
     def __init__(self, sess_config, mode, log_path, model_path, model_settings, model_building_fn=None, saving_steps=500, dipslay_steps=200):
         self.log_path = log_path
         self.model_path = model_path
