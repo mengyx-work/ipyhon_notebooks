@@ -52,6 +52,7 @@ class DataGenerator(object):
                 label_content.extend(self.label_buffer[:self._cur_record_index])
                 yield data_content, label_content
 
+
 def main():
     data_path = '/Users/matt.meng/data/speech_competition/processed_data'
     data_generator = DataGenerator(data_path)
