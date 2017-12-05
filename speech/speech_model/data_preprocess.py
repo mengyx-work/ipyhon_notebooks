@@ -3,6 +3,10 @@ import time
 from scipy.io import wavfile
 import cPickle as pickle
 from python_speech_features import logfbank
+from chunk_data import ChunkData
+
+SEED = 448
+random.seed(SEED)
 
 
 def check_wav_files(wav_files, expected_sample_rate=16000, expected_sample_length=16000):
@@ -46,8 +50,9 @@ def categorize_wav_files_by_label(wav_files):
 
 def generate_proportional_data_sets(categorized_wav_files, categorized_sample_num, label2index,
                                     training_percentage=0.7, test_percentage=0.15, validate_percentage=0.15):
+    if (training_percentage + test_percentage + validate_percentage) != 1.:
+        raise ValueError('the train/validation/test split percentage does not match')
     excluded_category = ['_background_noise_']
-    total_file_num = sum([categorized_sample_num[key] for key in categorized_sample_num if key not in excluded_category])
     training_samples, test_samples, validate_samples = [], [], []
     for category in categorized_wav_files.keys():
         if category in excluded_category:
@@ -71,51 +76,18 @@ def generate_proportional_data_sets(categorized_wav_files, categorized_sample_nu
     return training_samples, test_samples, validate_samples
 
 
-class ChunkData(object):
-    def __init__(self, data_path, file_prefix, chunk_size=200, feature_key='feature', label_key='label'):
-        self.label_chunk = []
-        self.feature_chunk = []
-        self.chunk_counter = 0
-        self.chunk_record_counter = 0
-        self.data_path = data_path
-        self.label_key = label_key
-        self.chunk_size = chunk_size
-        self.feature_key = feature_key
-        self.file_prefix = file_prefix
-        self.cur_chunk_time = time.time()
+def read_compressed_chunk_data(data_file, feature_key='feature', label_key='label'):
+    with open(data_file, 'rb') as f:
+        content = pickle.load(f)
+    if len(content[feature_key]) != len(content[label_key]):
+        raise ValueError('the raw data dimension is not consistent')
+    return content[feature_key], content[label_key], len(content[label_key])
 
-    def add_data(self, feature, label):
-        self.feature_chunk.append(feature)
-        self.label_chunk.append(label)
-        self.chunk_record_counter += 1
-        if self.chunk_record_counter == self.chunk_size:
-            self._dump_chunk_data()
-            self.chunk_record_counter = 0
-            self.cur_chunk_time = time.time()
 
-    def _current_file_suffix(self):
-        self.chunk_counter += 1
-        return str(self.chunk_counter).zfill(5)
-
-    def _dump_chunk_data(self):
-        if len(self.feature_chunk) != len(self.label_chunk):
-            raise ValueError('feature data size is different from that of label')
-        chunk_data = {self.feature_key: self.feature_chunk, self.label_key: self.label_chunk}
-        file_suffix = self._current_file_suffix()
-        file_path = os.path.join(self.data_path, '{}_data_{}.pkl'.format(self.file_prefix, file_suffix))
-        with open(file_path, 'wb') as f:
-            pickle.dump(chunk_data, f)
-        print('saving {} records to {} using {:.2f} seconds'.format(len(self.label_chunk), file_path, time.time() - self.cur_chunk_time))
-
-    def finish_data_loading(self):
-        if len(self.feature_chunk) == 0:
-            return
-        self._dump_chunk_data()
-
-def split_data_into_chunks(wav_files, chunk_size=2000, prefix='training',
-                           data_path='/Users/matt.meng/data/speech_competition/processed_data'):
+def process_and_split_data_by_chunk(wav_files, chunk_size=2000, prefix='training',
+                                    data_path='/Users/matt.meng/data/speech_competition/processed_data'):
     random.shuffle(wav_files)
-    chunk_data = ChunkData(data_path, prefix='train', chunk_size=chunk_size)
+    chunk_data = ChunkData(data_path, file_prefix='train', chunk_size=chunk_size)
     start_time = time.time()
     for i in range(len(wav_files)):
         sample_rate, samples = wavfile.read(wav_files[i][0])
@@ -148,13 +120,21 @@ def generate_label_dict(data_labels):
     return label2index, index2label
 
 
-def preprocess_raw_wav_files(train_main_path='/Users/matt.meng/data/speech_competition/train/audio'):
+def preprocess_data(train_main_path='/Users/matt.meng/data/speech_competition/train/audio'):
     wav_files = glob.glob(os.path.join(train_main_path, "*", "*.wav"))
     categorized_wav_files_, categorized_sample_num_ = categorize_wav_files_by_label(wav_files)
     label2index_, index2label_ = generate_label_dict(categorized_wav_files_.keys())
-    print ('the categorized sample numbers: \n', categorized_sample_num_)
+    print ('the categorized sample numbers:', categorized_sample_num_)
     training_samples_, test_samples_, validate_samles_ = generate_proportional_data_sets(categorized_wav_files_,
                                                                                          categorized_sample_num_,
                                                                                          label2index_)
     print ('the sample numbers:', len(training_samples_), len(test_samples_), len(validate_samles_))
-    split_data_into_chunks(training_samples_)
+    process_and_split_data_by_chunk(training_samples_)
+
+
+def main():
+    raw_wav_path = '/Users/matt.meng/data/speech_competition/train/audio'
+    preprocess_data(raw_wav_path)
+
+if __name__ == '__main__':
+    main()

@@ -3,7 +3,8 @@ import tensorflow as tf
 
 
 class TensorFlowModel(object):
-    def __init__(self, sess_config, mode, log_path, model_path, model_settings, model_building_fn=None, saving_steps=500, dipslay_steps=200):
+    def __init__(self, sess_config, mode, log_path, model_path, model_settings,
+                 model_building_fn=None, saving_steps=500, dipslay_steps=200):
         self.log_path = log_path
         self.model_path = model_path
         self.saving_steps = saving_steps
@@ -52,12 +53,12 @@ class TensorFlowModel(object):
         with tf.name_scope('train'):
             self.train_step = tf.train.GradientDescentOptimizer(self.learning_rate_input).minimize(self.loss)
 
-    def _next_feed(self, batches):
+    def _next_feed(self, batches, learning_rate):
         data_batch, target_batch = next(batches)
         return {self.wav_inputs: data_batch,
                 self.ground_truth_labels: target_batch,
                 self.dropout_prob: 0.5,
-                self.learning_rate_input: batches.retrieve_lr()
+                self.learning_rate_input: learning_rate
                 }
 
     def _saving_step_run(self):
@@ -70,10 +71,10 @@ class TensorFlowModel(object):
         self.writer.add_summary(summary, self.global_step)
         print 'step {}, batch loss: {} and using {:.2f} seconds'.format(self.global_step, loss_value, time.time()-start_time)
 
-    def reach_display_step(self):
+    def _reach_display_step(self):
         return self.global_step == 1 or self.global_step % self.display_steps == 0
 
-    def reach_saving_step(self):
+    def _reach_saving_step(self):
         return self.global_step % self.saving_steps == 0
 
     def train(self, num_batches, batch_generator):
@@ -82,15 +83,14 @@ class TensorFlowModel(object):
             self.merged_summary_op = tf.summary.merge_all()
             cur_time = time.time()
             while self.global_step < num_batches:
-                feed_content = self._next_feed(batch_generator)
+                feed_content = self._next_feed(batch_generator, 0.0001)
                 _ = self.sess.run([self.train_step], feed_content)
                 self.global_step += 1
 
-                if self.reach_saving_step():
+                if self._reach_saving_step():
                     self._saving_step_run()
 
-                if self.reach_display_step() and not self.reach_saving_step():
+                if self._reach_display_step() and not self._reach_saving_step():
                     self._display_step_run(cur_time, feed_content)
                     cur_time = time.time()
-
             self.saver.save(self.sess, os.path.join(self.model_path, 'complete_model'), global_step=self.global_step)
