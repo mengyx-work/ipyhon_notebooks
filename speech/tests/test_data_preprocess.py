@@ -1,17 +1,17 @@
 import os
 import unittest, glob
-from speech.speech_model.data_preprocess import preprocess_raw_wav_files, categorize_wav_files_by_label, \
+from speech.speech_model.data_preprocess import preprocess_data, categorize_wav_files_by_label, \
     generate_label_dict, generate_proportional_data_sets
 
 
 class TestDataPreprocess(unittest.TestCase):
 
-    @unittest.skip("system run")
+    @unittest.skip("local run")
     def test_preprocess_raw_wav_files(self):
         raw_wav_path = '/Users/matt.meng/data/speech_competition/train/audio'
-        preprocess_raw_wav_files(raw_wav_path)
+        preprocess_data(raw_wav_path)
 
-    @unittest.skip("system run")
+    @unittest.skip("local run")
     def test_generate_label_dict(self):
         train_main_path = '/Users/matt.meng/data/speech_competition/train/audio'
         wav_files = glob.glob(os.path.join(train_main_path, "*", "*.wav"))
@@ -20,6 +20,7 @@ class TestDataPreprocess(unittest.TestCase):
         self.assertEqual(len(label2index_), 33)
         self.assertEqual(len(index2label_), 12)
 
+    @unittest.skip("local run")
     def test_generate_proportional_data_sets(self):
         train_main_path = '/Users/matt.meng/data/speech_competition/train/audio'
         wav_files = glob.glob(os.path.join(train_main_path, "*", "*.wav"))
