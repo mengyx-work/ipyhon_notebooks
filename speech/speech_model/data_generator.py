@@ -10,13 +10,18 @@ class DataGenerator(object):
         self._cur_file_index = 0
         self._cur_record_index = 0
         self._prep_data()
+        self._collect_dimension()
+
+    def _collect_dimension(self):
+        self.frame_num = len(self.data_buffer[0])
+        self.frame_size = len(self.data_buffer[0][0])
 
     def _prep_data(self):
         if not os.path.isdir(self.data_path):
             raise ValueError('given data path {} is not valid'.format(self.data_path))
         self.raw_file_list = sorted(glob.glob(os.path.join(self.data_path, "*.pkl")))
         if len(self.raw_file_list) == 0:
-            raise ValueError('given data {} is empty'.format(self.data_path))
+            raise ValueError('given data {} in ``DataGenerator`` is empty'.format(self.data_path))
         self._load_file(self._cur_file_index)
 
     def _load_file(self, file_index):

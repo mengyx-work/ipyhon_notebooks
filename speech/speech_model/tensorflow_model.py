@@ -3,15 +3,15 @@ import tensorflow as tf
 
 
 class TensorFlowModel(object):
-    def __init__(self, sess_config, mode, log_path, model_path, model_settings,
-                 model_building_fn=None, saving_steps=500, dipslay_steps=200):
+    def __init__(self, mode, log_path, model_path, model_settings,
+                 model_building_fn=None, saving_steps=200, dipslay_steps=100):
         self.log_path = log_path
         self.model_path = model_path
         self.saving_steps = saving_steps
         self.display_steps = dipslay_steps
         self.model_settings = model_settings
         self.graph = tf.Graph()
-        self.sess = tf.Session(graph=self.graph, config=sess_config)
+        self.sess = tf.Session(graph=self.graph, config=self.model_settings['sess_config'])
         self.global_step = 0
 
         MODEL_MODES = ['train', 'restore_model', 'eval']
@@ -23,10 +23,14 @@ class TensorFlowModel(object):
             self._build_training_graph(model_building_fn)
 
     def _build_training_graph(self, build_model):
-        self._init_placeholders()
-        logits = build_model(self.wav_inputs, self.model_settings)
-        self.loss = self._build_loss(logits)
-        self._build_optimizer()
+        with self.graph.as_default():
+            self._init_placeholders()
+            logits = build_model(self.wav_inputs, self.model_settings)
+            self.loss = self._build_loss(logits)
+            self._build_optimizer()
+            self.saver = tf.train.Saver(max_to_keep=2, keep_checkpoint_every_n_hours=1)
+            init = tf.global_variables_initializer()
+            self.sess.run(init)
 
     def _init_placeholders(self):
         with tf.name_scope('initial_inputs'):
@@ -62,7 +66,7 @@ class TensorFlowModel(object):
                 }
 
     def _saving_step_run(self):
-        summary, _ = self.sess.run(self.merged_summary_op, self.increment_saving_step_op)
+        summary, _ = self.sess.run([self.merged_summary_op, self.increment_saving_step_op])
         self.writer.add_summary(summary, self.global_step)
         self.saver.save(self.sess, os.path.join(self.model_path, 'models'), global_step=self.global_step)
 
@@ -77,7 +81,7 @@ class TensorFlowModel(object):
     def _reach_saving_step(self):
         return self.global_step % self.saving_steps == 0
 
-    def train(self, num_batches, batch_generator):
+    def train(self, batch_generator, num_batches):
         with self.graph.as_default():
             self.writer = tf.summary.FileWriter(self.log_path, graph=self.graph)
             self.merged_summary_op = tf.summary.merge_all()
@@ -88,7 +92,7 @@ class TensorFlowModel(object):
                 self.global_step += 1
 
                 if self._reach_saving_step():
-                    self._saving_step_run()
+                    self._saving_step_run(feed_content)
 
                 if self._reach_display_step() and not self._reach_saving_step():
                     self._display_step_run(cur_time, feed_content)

@@ -4,13 +4,13 @@ from speech.speech_model.data_generator import DataGenerator
 
 class TestDataGenerator(unittest.TestCase):
 
-    @unittest.skip("system run")
+    @unittest.skip("local run")
     def test_prep_data(self):
         data_path = '/Users/matt.meng/data/speech_competition/processed_data'
         data_generator = DataGenerator(data_path)
         self.assertGreater(len(data_generator.raw_file_list), 1)
 
-    @unittest.skip("system run")
+    @unittest.skip("local run")
     def test_next_file_index(self):
         data_path = '/Users/matt.meng/data/speech_competition/processed_data'
         data_generator = DataGenerator(data_path)
@@ -28,16 +28,17 @@ class TestDataGenerator(unittest.TestCase):
             data_generator._load_file(file_index)
         print('for {} iterations, the average time is {:.2f} seconds'.format(iter_num, (time.time()-start_time)/iter_num))
 
+    @unittest.skip("local run")
     def test_generate_batch_iter(self):
         data_path = '/Users/matt.meng/data/speech_competition/processed_data'
         data_generator = DataGenerator(data_path)
         batch_size = 25
         batches = data_generator.generate_batch_iter(batch_size)
         data_content, label_content = next(batches)
-        print data_content[0].shape
-        print label_content[0]
+        print 'data shape:', data_content[0].shape
+        print 'the label:', label_content[0]
 
-    @unittest.skip("system run")
+    @unittest.skip("local run")
     def test_short_generate_batch_iter(self):
         data_path = '/Users/matt.meng/data/speech_competition/processed_data'
         data_generator = DataGenerator(data_path)
@@ -47,7 +48,7 @@ class TestDataGenerator(unittest.TestCase):
         self.assertEqual(len(data_content), batch_size)
         self.assertEqual(len(label_content), batch_size)
 
-    @unittest.skip("system run")
+    @unittest.skip("local run")
     def test_long_generate_batch_iter(self):
         data_path = '/Users/matt.meng/data/speech_competition/processed_data'
         data_generator = DataGenerator(data_path)
