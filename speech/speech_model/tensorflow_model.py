@@ -4,7 +4,7 @@ import tensorflow as tf
 
 class TensorFlowModel(object):
     def __init__(self, mode, log_path, model_path, model_settings,
-                 model_building_fn=None, saving_steps=200, dipslay_steps=100):
+                 model_building_fn=None, saving_steps=20, dipslay_steps=10):
         self.log_path = log_path
         self.model_path = model_path
         self.saving_steps = saving_steps
@@ -46,7 +46,7 @@ class TensorFlowModel(object):
                                                       name="increment_saving_step_op")
 
     def _build_loss(self, logits):
-        with tf.name_scope('cross_entropy'):
+        with tf.name_scope('loss'):
             cross_entropy_mean = tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.ground_truth_labels,
                                                                logits=logits))
@@ -66,8 +66,7 @@ class TensorFlowModel(object):
                 }
 
     def _saving_step_run(self):
-        summary, _ = self.sess.run([self.merged_summary_op, self.increment_saving_step_op])
-        self.writer.add_summary(summary, self.global_step)
+        _ = self.sess.run([self.increment_saving_step_op])
         self.saver.save(self.sess, os.path.join(self.model_path, 'models'), global_step=self.global_step)
 
     def _display_step_run(self, start_time, feed_content):
@@ -83,8 +82,9 @@ class TensorFlowModel(object):
 
     def train(self, batch_generator, num_batches):
         with self.graph.as_default():
-            self.writer = tf.summary.FileWriter(self.log_path, graph=self.graph)
             self.merged_summary_op = tf.summary.merge_all()
+            self.writer = tf.summary.FileWriter(self.log_path, graph=self.graph)
+
             cur_time = time.time()
             while self.global_step < num_batches:
                 feed_content = self._next_feed(batch_generator, 0.0001)
@@ -92,9 +92,9 @@ class TensorFlowModel(object):
                 self.global_step += 1
 
                 if self._reach_saving_step():
-                    self._saving_step_run(feed_content)
+                    self._saving_step_run()
 
-                if self._reach_display_step() and not self._reach_saving_step():
+                if self._reach_display_step():
                     self._display_step_run(cur_time, feed_content)
                     cur_time = time.time()
             self.saver.save(self.sess, os.path.join(self.model_path, 'complete_model'), global_step=self.global_step)
