@@ -6,7 +6,7 @@ from create_tensorboard_start_script import generate_tensorboard_script
 
 class TensorFlowModel(object):
     def __init__(self, mode, log_path, model_path, model_settings,
-                 model_building_fn=None, saving_steps=6000, dipslay_steps=4000):
+                 model_building_fn=None, saving_steps=7500, dipslay_steps=5000):
         self.log_path = log_path
         self.model_path = model_path
         self.saving_steps = saving_steps
@@ -144,6 +144,7 @@ class TensorFlowModel(object):
         return self.global_step % self.saving_steps == 0
 
     def train(self, batches, num_batches, test_batches=None):
+        print('start training with total {} batches'.format(num_batches))
         with self.graph.as_default():
             self.merged_summary_op = tf.summary.merge_all()
             self.writer = tf.summary.FileWriter(self.log_path, graph=self.graph)

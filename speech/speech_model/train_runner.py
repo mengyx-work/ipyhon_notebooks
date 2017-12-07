@@ -35,11 +35,13 @@ def train_model(model_name='speech_neural_network_model', USE_GPU=False):
     log_path = os.path.join(COMMON_PATH, model_name, 'log')
 
     data_path = '/Users/matt.meng/data/speech_competition/processed_data'
-    data_generator = DataGenerator(data_path)
-    test_data_generator = DataGenerator(data_path)
+    data_generator = DataGenerator(data_path, 'train_generator')
+    test_data_generator = DataGenerator(data_path, 'test_generator')
     test_batches = test_data_generator.generate_batch_iter(3000)
 
-    batch_size = 256
+    batch_size = 16
+    epoch_num = 20
+    train_iters = data_generator.iter_num(batch_size) * epoch_num
     batches = data_generator.generate_batch_iter(batch_size)
     model_settings = {'frame_num': data_generator.frame_num,
                       'frame_size': data_generator.frame_size,
@@ -54,7 +56,7 @@ def train_model(model_name='speech_neural_network_model', USE_GPU=False):
 
     model = TensorFlowModel('train', log_path, model_path, model_settings, model_building_fn=build_nenural_network_model)
     #model = TensorFlowModel('restore_train', log_path, model_path, model_settings, model_building_fn=build_nenural_network_model)
-    model.train(batches, 100000,test_batches)
+    model.train(batches, train_iters, test_batches)
 
 if __name__ == '__main__':
     train_model()
