@@ -48,8 +48,36 @@ def categorize_wav_files_by_label(wav_files):
     return categorized_wav_files, categorized_sample_num
 
 
-def generate_proportional_data_sets(categorized_wav_files, categorized_sample_num, label2index,
-                                    training_percentage=0.7, test_percentage=0.15, validate_percentage=0.15):
+def generate_proportional_data(categorized_wav_files, categorized_sample_num, label2index, percentage_list=[]):
+    if sum(percentage_list) != 1.:
+        raise ValueError('the train/validation/test split percentage does not match')
+    excluded_category = ['_background_noise_']
+    samples_by_percentage = [[] for _ in percentage_list]
+    print('total samples: {}'.format(sum(categorized_sample_num.values())))
+    for category in categorized_wav_files.keys():
+        if category in excluded_category:
+            continue
+        hash_name_list = categorized_wav_files[category].keys()
+        hash_name_index = 0
+        category_total = 0
+        for i, percentage in enumerate(percentage_list):
+            tot_counts = math.ceil(percentage * categorized_sample_num[category])
+            count = 0
+            while count <= tot_counts and hash_name_index < len(hash_name_list):
+                hash_name = hash_name_list[hash_name_index]
+                hash_name_index += 1
+                for wave_file in categorized_wav_files[category][hash_name]:
+                    samples_by_percentage[i].append((wave_file, label2index[category]))
+                    count += 1
+            category_total += count
+        if category_total != categorized_sample_num[category]:
+            print('error! expect {}, found {} after processing'.format(categorized_sample_num[category],
+                                                                       category_total))
+    return samples_by_percentage
+
+
+def generate_fixed_proportional_data(categorized_wav_files, categorized_sample_num, label2index,
+                                     training_percentage=0.7, test_percentage=0.15, validate_percentage=0.15):
     if (training_percentage + test_percentage + validate_percentage) != 1.:
         raise ValueError('the train/validation/test split percentage does not match')
     excluded_category = ['_background_noise_']
@@ -119,17 +147,16 @@ def generate_label_dict(data_labels):
         label2index[label] = label2index[unknown_label]
     return label2index, index2label
 
-
+'''
 def preprocess_data(train_main_path='/Users/matt.meng/data/speech_competition/train/audio'):
     wav_files = glob.glob(os.path.join(train_main_path, "*", "*.wav"))
     categorized_wav_files_, categorized_sample_num_ = categorize_wav_files_by_label(wav_files)
     label2index_, index2label_ = generate_label_dict(categorized_wav_files_.keys())
     print ('the categorized sample numbers:', categorized_sample_num_)
-    training_samples_, test_samples_, validate_samles_ = generate_proportional_data_sets(categorized_wav_files_,
-                                                                                         categorized_sample_num_,
-                                                                                         label2index_)
-    print ('the sample numbers:', len(training_samples_), len(test_samples_), len(validate_samles_))
-    process_and_split_data_by_chunk(training_samples_)
+    percentage_list = [0.8, 0.2]
+    samples_by_percentage = generate_proportional_data(categorized_wav_files_, categorized_sample_num_, label2index_, percentage_list)
+    process_and_split_data_by_chunk(samples_by_percentage[0], prefix='train')
+    process_and_split_data_by_chunk(samples_by_percentage[1], prefix='train')
 
 
 def main():
@@ -138,3 +165,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+'''
