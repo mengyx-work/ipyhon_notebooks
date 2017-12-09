@@ -4,7 +4,7 @@ from tensorflow_model import TensorFlowModel
 from data_generator import DataGenerator
 
 
-def build_nenural_network_model(wav_input, model_settings, logits_name='output'):
+def build_nenural_network_model(wav_input, model_settings, keep_prob, logits_name='output'):
     frame_size = model_settings['frame_size']
     frame_num = model_settings['frame_num']
     label_size = model_settings['label_size']
@@ -17,12 +17,13 @@ def build_nenural_network_model(wav_input, model_settings, logits_name='output')
 
     flat_wav_input = tf.reshape(wav_input, (-1, frame_size * frame_num))
     hidden_layer_output = tf.add(tf.matmul(flat_wav_input, hidden_layer_weight), hidden_layer_bias)
-
+    activated_hidden_output = tf.nn.relu(hidden_layer_output, name='hidden_layer_ReLU')
+    dropouted_hidden_output = tf.tf.nn.dropout(activated_hidden_output, keep_prob=keep_prob, name='hidden_layer_dropout')
     output_weights = tf.Variable(tf.truncated_normal([hidden_layer_output_size, label_size]), name='output_weights')
     output_bias = tf.Variable(tf.zeros([label_size]), name='output_bias')
     tf.summary.histogram("model/output_weights", output_weights)
 
-    logits = tf.add(tf.matmul(hidden_layer_output, output_weights), output_bias, name=logits_name)
+    logits = tf.add(tf.matmul(dropouted_hidden_output, output_weights), output_bias, name=logits_name)
     return logits
 
 
@@ -34,17 +35,18 @@ def train_model(model_name='speech_neural_network_model', USE_GPU=False):
     model_path = os.path.join(COMMON_PATH, model_name)
     log_path = os.path.join(COMMON_PATH, model_name, 'log')
 
-    data_path = '/Users/matt.meng/data/speech_competition/processed_data'
-    data_generator = DataGenerator(data_path, 'train_generator')
-    test_data_generator = DataGenerator(data_path, 'test_generator')
-    test_batches = test_data_generator.generate_batch_iter(3000)
+    train_data_path = '/Users/matt.meng/data/speech_competition/processed_data/train'
+    test_data_path = '/Users/matt.meng/data/speech_competition/processed_data/test'
+    train_data_generator = DataGenerator(train_data_path, 'train_generator')
+    test_data_generator = DataGenerator(test_data_path, 'test_generator')
+    test_batches = test_data_generator.generate_batch_iter(-1)
 
     batch_size = 16
-    epoch_num = 20
-    train_iters = data_generator.iter_num(batch_size) * epoch_num
-    batches = data_generator.generate_batch_iter(batch_size)
-    model_settings = {'frame_num': data_generator.frame_num,
-                      'frame_size': data_generator.frame_size,
+    epoch_num = 200
+    train_iters = train_data_generator.iter_num(batch_size) * epoch_num
+    batches = train_data_generator.generate_batch_iter(batch_size)
+    model_settings = {'frame_num': train_data_generator.frame_num,
+                      'frame_size': train_data_generator.frame_size,
                       'label_size': 12,
                       'hidden_layer_size': 512}
     if USE_GPU:

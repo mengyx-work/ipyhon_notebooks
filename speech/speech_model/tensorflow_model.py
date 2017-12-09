@@ -36,7 +36,7 @@ class TensorFlowModel(object):
         with self.graph.as_default():
             self._init_placeholders()
             with tf.name_scope('model'):
-                self.logits = build_model(self.wav_inputs, self.model_settings, 'logit_output')
+                self.logits = build_model(self.wav_inputs, self.model_settings, self.dropout_prob, 'logit_output')
             self.loss = self._build_loss(self.logits)
             self._build_optimizer()
             self._build_predictor()
