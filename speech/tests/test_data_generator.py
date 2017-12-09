@@ -8,7 +8,7 @@ class TestDataGenerator(unittest.TestCase):
     def test_prep_data(self):
         data_path = '/Users/matt.meng/data/speech_competition/processed_data'
         data_generator = DataGenerator(data_path)
-        self.assertGreater(len(data_generator.raw_file_list), 1)
+        self.assertGreater(len(data_generator._raw_file_list), 1)
 
     @unittest.skip("local run")
     def test_next_file_index(self):
@@ -25,7 +25,7 @@ class TestDataGenerator(unittest.TestCase):
         iter_num = 10
         for i in range(iter_num):
             file_index = data_generator._next_file_index()
-            data_generator._load_file(file_index)
+            data_generator._load_file_by_index(file_index)
         print('for {} iterations, the average time is {:.2f} seconds'.format(iter_num, (time.time()-start_time)/iter_num))
 
     @unittest.skip("local run")
