@@ -4,7 +4,7 @@ from tensorflow_model import TensorFlowModel
 from data_generator import DataGenerator
 
 
-def build_nenural_network_model(wav_input, model_settings, keep_prob, logits_name='output'):
+def build_forward_nenural_network_model(wav_input, model_settings, keep_prob, logits_name='output'):
     frame_size = model_settings['frame_size']
     frame_num = model_settings['frame_num']
     label_size = model_settings['label_size']
@@ -18,7 +18,7 @@ def build_nenural_network_model(wav_input, model_settings, keep_prob, logits_nam
     flat_wav_input = tf.reshape(wav_input, (-1, frame_size * frame_num))
     hidden_layer_output = tf.add(tf.matmul(flat_wav_input, hidden_layer_weight), hidden_layer_bias)
     activated_hidden_output = tf.nn.relu(hidden_layer_output, name='hidden_layer_ReLU')
-    dropouted_hidden_output = tf.tf.nn.dropout(activated_hidden_output, keep_prob=keep_prob, name='hidden_layer_dropout')
+    dropouted_hidden_output = tf.nn.dropout(activated_hidden_output, keep_prob=keep_prob, name='hidden_layer_dropout')
     output_weights = tf.Variable(tf.truncated_normal([hidden_layer_output_size, label_size]), name='output_weights')
     output_bias = tf.Variable(tf.zeros([label_size]), name='output_bias')
     tf.summary.histogram("model/output_weights", output_weights)
@@ -31,7 +31,7 @@ COMMON_PATH = os.path.join(os.path.expanduser("~"), 'local_tensorflow_content')
 NUM_THREADS = 6
 
 
-def train_model(model_name='speech_neural_network_model', USE_GPU=False):
+def train_model(model_name='update_speech_neural_network_model', USE_GPU=False):
     model_path = os.path.join(COMMON_PATH, model_name)
     log_path = os.path.join(COMMON_PATH, model_name, 'log')
 
@@ -42,7 +42,7 @@ def train_model(model_name='speech_neural_network_model', USE_GPU=False):
     test_batches = test_data_generator.generate_batch_iter(-1)
 
     batch_size = 16
-    epoch_num = 200
+    epoch_num = 100
     train_iters = train_data_generator.iter_num(batch_size) * epoch_num
     batches = train_data_generator.generate_batch_iter(batch_size)
     model_settings = {'frame_num': train_data_generator.frame_num,
@@ -56,7 +56,7 @@ def train_model(model_name='speech_neural_network_model', USE_GPU=False):
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # the only way to completely not use GPU
         model_settings['sess_config'] = tf.ConfigProto(intra_op_parallelism_threads=NUM_THREADS)
 
-    model = TensorFlowModel('train', log_path, model_path, model_settings, model_building_fn=build_nenural_network_model)
+    model = TensorFlowModel('train', log_path, model_path, model_settings, model_building_fn=build_forward_nenural_network_model)
     #model = TensorFlowModel('restore_train', log_path, model_path, model_settings, model_building_fn=build_nenural_network_model)
     model.train(batches, train_iters, test_batches)
 
